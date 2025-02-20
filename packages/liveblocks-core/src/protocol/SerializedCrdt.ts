@@ -7,6 +7,7 @@ export enum CrdtType {
   LIST = 1,
   MAP = 2,
   REGISTER = 3,
+  ASYNC_REGISTER = 461,
 }
 
 export type SerializedCrdt = SerializedRootObject | SerializedChild;
@@ -15,7 +16,8 @@ export type SerializedChild =
   | SerializedObject
   | SerializedList
   | SerializedMap
-  | SerializedRegister;
+  | SerializedRegister
+  | SerializedAsyncRegister;
 
 export type SerializedRootObject = {
   readonly type: CrdtType.OBJECT;
@@ -50,6 +52,14 @@ export type SerializedRegister = {
   readonly parentId: string;
   readonly parentKey: string;
   readonly data: Json;
+};
+
+export type SerializedAsyncRegister = {
+  readonly type: CrdtType.ASYNC_REGISTER;
+  readonly parentId: string;
+  readonly parentKey: string;
+  readonly asyncType?: string;
+  readonly asyncId?: string;
 };
 
 export function isRootCrdt(crdt: SerializedCrdt): crdt is SerializedRootObject {

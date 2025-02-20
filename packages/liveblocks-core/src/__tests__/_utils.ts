@@ -20,6 +20,7 @@ import type { BaseMetadata } from "../protocol/Comments";
 import type { Op } from "../protocol/Op";
 import type {
   IdTuple,
+  SerializedAsyncRegister,
   SerializedCrdt,
   SerializedList,
   SerializedMap,
@@ -28,7 +29,10 @@ import type {
   SerializedRootObject,
 } from "../protocol/SerializedCrdt";
 import { CrdtType } from "../protocol/SerializedCrdt";
-import type { ServerMsg } from "../protocol/ServerMsg";
+import type {
+  InitialAsyncRegisterStateServerMsg,
+  ServerMsg,
+} from "../protocol/ServerMsg";
 import { ServerMsgCode } from "../protocol/ServerMsg";
 import type { Room, RoomDelegates } from "../room";
 import { createRoom } from "../room";
@@ -239,6 +243,21 @@ export async function prepareIsolatedStorageTest<S extends LsonObject>(
           ops,
         })
       ),
+
+    initializeAsyncRegister: (
+      items: IdTuple<SerializedCrdt>[],
+      rootId: string,
+      rootParentId: string
+    ) => {
+      wss.last.send(
+        serverMessage({
+          type: ServerMsgCode.INITIAL_ASYNC_REGISTER_STATE,
+          items,
+          rootId,
+          rootParentId,
+        })
+      );
+    },
   };
 }
 
@@ -608,6 +627,19 @@ export function createSerializedMap(
   parentKey: string
 ): IdTuple<SerializedMap> {
   return [id, { type: CrdtType.MAP, parentId, parentKey }];
+}
+
+export function createSerializedAsyncRegister(
+  id: string,
+  parentId: string,
+  parentKey: string,
+  asyncType?: string,
+  asyncId?: string
+): IdTuple<SerializedAsyncRegister> {
+  return [
+    id,
+    { type: CrdtType.ASYNC_REGISTER, parentId, parentKey, asyncType, asyncId },
+  ];
 }
 
 export function createSerializedRegister(

@@ -7,6 +7,7 @@ import type { IdTuple, SerializedCrdt } from "../protocol/SerializedCrdt";
 import { CrdtType } from "../protocol/SerializedCrdt";
 import type { NodeMap, ParentToChildNodeMap } from "../types/NodeMap";
 import type { ManagedPool } from "./AbstractCrdt";
+import { LiveAsyncRegister } from "./LiveAsyncRegister";
 import { LiveList, type LiveListUpdates } from "./LiveList";
 import { LiveMap, type LiveMapUpdates } from "./LiveMap";
 import { LiveObject, type LiveObjectUpdates } from "./LiveObject";
@@ -22,6 +23,11 @@ export function creationOpToLson(op: CreateOp): Lson {
   switch (op.type) {
     case OpCode.CREATE_REGISTER:
       return op.data;
+    case OpCode.CREATE_ASYNC_REGISTER:
+      return new LiveAsyncRegister({
+        asyncType: op.asyncType,
+        asyncId: op.asyncId,
+      });
     case OpCode.CREATE_OBJECT:
       return new LiveObject(op.data);
     case OpCode.CREATE_MAP:
@@ -58,6 +64,9 @@ export function deserialize(
     case CrdtType.MAP: {
       return LiveMap._deserialize([id, crdt], parentToChildren, pool);
     }
+    case CrdtType.ASYNC_REGISTER: {
+      return LiveAsyncRegister._deserialize([id, crdt], parentToChildren, pool);
+    }
     case CrdtType.REGISTER: {
       return LiveRegister._deserialize([id, crdt], parentToChildren, pool);
     }
@@ -82,6 +91,9 @@ export function deserializeToLson(
     case CrdtType.MAP: {
       return LiveMap._deserialize([id, crdt], parentToChildren, pool);
     }
+    case CrdtType.ASYNC_REGISTER: {
+      return LiveAsyncRegister._deserialize([id, crdt], parentToChildren, pool);
+    }
     case CrdtType.REGISTER: {
       return crdt.data;
     }
@@ -92,7 +104,12 @@ export function deserializeToLson(
 }
 
 export function isLiveStructure(value: unknown): value is LiveStructure {
-  return isLiveList(value) || isLiveMap(value) || isLiveObject(value);
+  return (
+    isLiveList(value) ||
+    isLiveMap(value) ||
+    isLiveObject(value) ||
+    isLiveAsyncRegister(value)
+  );
 }
 
 export function isLiveNode(value: unknown): value is LiveNode {
@@ -115,12 +132,18 @@ export function isLiveRegister(value: unknown): value is LiveRegister<Json> {
   return value instanceof LiveRegister;
 }
 
+export function isLiveAsyncRegister(
+  value: unknown
+): value is LiveAsyncRegister<LiveObject<LsonObject>> {
+  return value instanceof LiveAsyncRegister;
+}
+
 export function cloneLson<L extends Lson | undefined>(value: L): L {
   return value === undefined
     ? (undefined as L)
     : isLiveStructure(value)
-      ? (value.clone() as L)
-      : (deepClone(value) as L);
+    ? (value.clone() as L)
+    : (deepClone(value) as L);
 }
 
 export function liveNodeToLson(obj: LiveNode): Lson {
@@ -129,7 +152,8 @@ export function liveNodeToLson(obj: LiveNode): Lson {
   } else if (
     obj instanceof LiveList ||
     obj instanceof LiveMap ||
-    obj instanceof LiveObject
+    obj instanceof LiveObject ||
+    obj instanceof LiveAsyncRegister
   ) {
     return obj;
   } else {
@@ -141,7 +165,8 @@ export function lsonToLiveNode(value: Lson): LiveNode {
   if (
     value instanceof LiveObject ||
     value instanceof LiveMap ||
-    value instanceof LiveList
+    value instanceof LiveList ||
+    value instanceof LiveAsyncRegister
   ) {
     return value;
   } else {
@@ -168,6 +193,7 @@ export function getTreesDiffOperations(
   newItems.forEach((crdt, id) => {
     const currentCrdt = currentItems.get(id);
     if (currentCrdt) {
+      // @TODO: waht about async register?
       if (crdt.type === CrdtType.OBJECT) {
         if (
           currentCrdt.type !== CrdtType.OBJECT ||
@@ -229,6 +255,15 @@ export function getTreesDiffOperations(
             parentKey: crdt.parentKey,
           });
           break;
+        case CrdtType.ASYNC_REGISTER:
+          ops.push({
+            type: OpCode.CREATE_ASYNC_REGISTER,
+            id,
+            parentId: crdt.parentId,
+            parentKey: crdt.parentKey,
+            asyncType: crdt.asyncType,
+            asyncId: crdt.asyncId,
+          });
       }
     }
   });
@@ -240,7 +275,7 @@ function mergeObjectStorageUpdates<A extends LsonObject, B extends LsonObject>(
   first: LiveObjectUpdates<A>,
   second: LiveObjectUpdates<B>
 ): LiveObjectUpdates<B> {
-  const updates = first.updates as (typeof second)["updates"];
+  const updates = first.updates as typeof second["updates"];
   for (const [key, value] of entries(second.updates)) {
     updates[key] = value;
   }
@@ -289,6 +324,7 @@ export function mergeStorageUpdates(
     return mergeMapStorageUpdates(first, second);
   } else if (first.type === "LiveList" && second.type === "LiveList") {
     return mergeListStorageUpdates(first, second);
+    // @TODO: add async register
   } else {
     /* Mismatching merge types. Throw an error here? */
   }

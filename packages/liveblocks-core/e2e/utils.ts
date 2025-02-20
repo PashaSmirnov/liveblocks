@@ -15,17 +15,19 @@ import type { ToImmutable } from "../src/crdts/utils";
 import { createClient } from "../src/client";
 import type { BaseMetadata, NoInfr } from "../src";
 
-async function initializeRoomForTest<
+export async function initializeRoomForTest<
   P extends JsonObject = JsonObject,
   S extends LsonObject = LsonObject,
   U extends BaseUserMeta = BaseUserMeta,
   E extends Json = Json,
-  M extends BaseMetadata = BaseMetadata,
+  M extends BaseMetadata = BaseMetadata
 >(roomId: string, initialPresence: NoInfr<P>, initialStorage: NoInfr<S>) {
-  const publicApiKey = process.env.LIVEBLOCKS_PUBLIC_KEY;
+  const authEndpoint = process.env.LIVEBLOCKS_AUTH_ENDPOINT;
 
-  if (publicApiKey == null) {
-    throw new Error('Environment variable "LIVEBLOCKS_PUBLIC_KEY" is missing.');
+  if (authEndpoint == null) {
+    throw new Error(
+      'Environment variable "LIVEBLOCKS_AUTH_ENDPOINT" is missing.'
+    );
   }
 
   let ws: PausableWebSocket | null = null;
@@ -61,7 +63,7 @@ async function initializeRoomForTest<
   }
 
   const client = createClient<U>({
-    publicApiKey,
+    authEndpoint,
     polyfills: {
       // @ts-ignore-error
       fetch,

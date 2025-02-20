@@ -1,5 +1,12 @@
 import type { Json } from "../lib/Json";
-import type { PlainLson } from "../types/PlainLson";
+import type {
+  PlainLson,
+  PlainLsonAsyncRegister,
+  PlainLsonList,
+  PlainLsonMap,
+  PlainLsonObject,
+} from "../types/PlainLson";
+import { LiveAsyncRegister } from "./LiveAsyncRegister";
 import { LiveList } from "./LiveList";
 import { LiveMap } from "./LiveMap";
 import { LiveObject } from "./LiveObject";
@@ -32,6 +39,8 @@ export type ToImmutable<L extends Lson | LsonObject> =
   // A LiveMap serializes to a JSON object with string-V pairs
   L extends LiveMap<infer K, infer V> ? ReadonlyMap<K, ToImmutable<V>> :
 
+  L extends LiveAsyncRegister<infer I> ? {data: ToImmutable<I> | null} :
+
   // Any LsonObject recursively becomes a JsonObject
   L extends LsonObject ?
     { readonly [K in keyof L]: ToImmutable<Exclude<L[K], undefined>>
@@ -55,20 +64,25 @@ export function toPlainLson(lson: Lson): PlainLson {
           value !== undefined ? [[key, toPlainLson(value)]] : []
         )
       ),
-    };
+    } as PlainLsonObject;
   } else if (lson instanceof LiveMap) {
     return {
       liveblocksType: "LiveMap",
       data: Object.fromEntries(
         [...lson].map(([key, value]) => [key, toPlainLson(value)])
       ),
-    };
+    } as PlainLsonMap;
   } else if (lson instanceof LiveList) {
     return {
       liveblocksType: "LiveList",
       data: [...lson].map((item) => toPlainLson(item)),
-    };
+    } as PlainLsonList;
+  } else if (lson instanceof LiveAsyncRegister) {
+    return {
+      liveblocksType: "LiveAsyncRegister",
+      data: { asyncType: lson.asyncType, asyncId: lson.asyncId },
+    } as PlainLsonAsyncRegister;
   } else {
-    return lson;
+    return lson as Json;
   }
 }

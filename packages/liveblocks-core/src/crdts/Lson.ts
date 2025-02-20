@@ -3,11 +3,13 @@ import type { LiveMap } from "../crdts/LiveMap";
 import type { LiveObject } from "../crdts/LiveObject";
 import type { LiveRegister } from "../crdts/LiveRegister";
 import type { Json } from "../lib/Json";
+import type { LiveAsyncRegister } from "./LiveAsyncRegister";
 
 export type LiveStructure =
   | LiveObject<LsonObject>
   | LiveList<Lson>
-  | LiveMap<string, Lson>;
+  | LiveMap<string, Lson>
+  | LiveAsyncRegister<LiveObject<LsonObject>>;
 
 /**
  * Think of Lson as a sibling of the Json data tree, except that the nested
@@ -66,6 +68,9 @@ export type ToJson<T extends Lson | LsonObject> =
 
   // A LiveMap serializes to a JSON object with string-V pairs
   T extends LiveMap<infer KS, infer V> ? { [K in KS]: ToJson<V> } :
+
+  // A LiveMap serializes to a JSON object with string-V pairs
+  T extends LiveAsyncRegister<infer V> ? { asyncId: string, asyncType: string, data: ToJson<V> | null } :
 
   // Otherwise, this is not possible
   never;

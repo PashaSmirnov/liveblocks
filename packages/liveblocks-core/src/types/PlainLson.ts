@@ -59,10 +59,16 @@ export type PlainLsonList = {
   data: PlainLson[];
 };
 
+export type PlainLsonAsyncRegister = {
+  liveblocksType: "LiveAsyncRegister";
+  data: { asyncType?: string; asyncId?: string };
+};
+
 export type PlainLson =
   | PlainLsonObject
   | PlainLsonMap
   | PlainLsonList
+  | PlainLsonAsyncRegister
 
   // Any "normal" Json value, as long as it's not an object with
   // a `liveblocksType` field :)

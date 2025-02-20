@@ -1,3 +1,4 @@
+import { LiveAsyncRegister } from "./crdts/LiveAsyncRegister";
 import {
   findNonSerializableValue,
   isLiveList,
@@ -62,6 +63,13 @@ export function lsonToJson(value: Lson): Json {
   } else if (value instanceof LiveRegister) {
     // NOTE: This branch should never be taken, because LiveRegister isn't a valid Lson value
     return value.data as Json;
+  } else if (value instanceof LiveAsyncRegister) {
+    const data = value.get();
+    if (data !== null) {
+      return liveObjectToJson(data);
+    } else {
+      return null;
+    }
   }
 
   // Then for composite Lson values
@@ -414,6 +422,9 @@ function legacy_patchImmutableNode<S extends Json>(
         //              updating keys from StorageUpdate here that aren't in S,
         //              technically.
       }
+
+      case "LiveAsyncRegister":
+        throw new Error("not implemented");
     }
   }
 

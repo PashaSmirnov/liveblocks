@@ -13,6 +13,7 @@ export enum ServerMsgCode {
 
   // For Storage
   INITIAL_STORAGE_STATE = 200,
+  INITIAL_ASYNC_REGISTER_STATE = 242,
   UPDATE_STORAGE = 201,
   REJECT_STORAGE_OP = 299,
 
@@ -48,6 +49,7 @@ export type ServerMsg<
 
   // For Storage
   | InitialDocumentStateServerMsg // For a single client
+  | InitialAsyncRegisterStateServerMsg // For receiving async register subtree inital state
   | UpdateStorageServerMsg // Broadcasted
   | RejectedStorageOpServerMsg // For a single client
   | YDocUpdateServerMsg // For receiving doc from backend
@@ -281,6 +283,18 @@ export type RoomStateServerMsg<U extends BaseUserMeta> = {
 export type InitialDocumentStateServerMsg = {
   readonly type: ServerMsgCode.INITIAL_STORAGE_STATE;
   readonly items: IdTuple<SerializedCrdt>[];
+};
+
+/**
+ * Sent by the WebSocket server to a single client in response to the client
+ * joining the Room, to provide the initial async register state state of the Room. The
+ * payload includes the entire async register subtree state.
+ */
+export type InitialAsyncRegisterStateServerMsg = {
+  readonly type: ServerMsgCode.INITIAL_ASYNC_REGISTER_STATE;
+  readonly items: IdTuple<SerializedCrdt>[];
+  readonly rootId: string;
+  readonly rootParentId: string;
 };
 
 /**

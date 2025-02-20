@@ -10,6 +10,7 @@ export enum OpCode {
   DELETE_OBJECT_KEY = 6,
   CREATE_MAP = 7,
   CREATE_REGISTER = 8,
+  CREATE_ASYNC_REGISTER = 524,
 }
 
 /**
@@ -27,6 +28,7 @@ export type Op =
 export type CreateOp =
   | CreateObjectOp
   | CreateRegisterOp
+  | CreateAsyncRegisterOp
   | CreateMapOp
   | CreateListOp;
 
@@ -77,6 +79,19 @@ export type CreateRegisterOp = {
   readonly parentId: string;
   readonly parentKey: string;
   readonly data: Json;
+};
+
+export type CreateAsyncRegisterOp = {
+  readonly opId?: string;
+  readonly id: string;
+  readonly intent?: "set";
+  readonly deletedId?: string;
+  readonly type: OpCode.CREATE_ASYNC_REGISTER;
+  readonly parentId: string;
+  readonly parentKey: string;
+
+  readonly asyncType?: string;
+  readonly asyncId?: string;
 };
 
 export type DeleteCrdtOp = {

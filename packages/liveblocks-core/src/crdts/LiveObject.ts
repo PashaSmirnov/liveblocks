@@ -101,6 +101,53 @@ export class LiveObject<O extends LsonObject> extends AbstractCrdt {
     ) as LiveObject<O>;
   }
 
+  static #buildAsyncRegisterRootAndParentToChildren(
+    items: IdTuple<SerializedCrdt>[],
+    rootId: string
+  ): [IdTuple<SerializedObject>, ParentToChildNodeMap] {
+    const parentToChildren: ParentToChildNodeMap = new Map();
+    let root: IdTuple<SerializedObject> | null = null;
+
+    for (const [id, crdt] of items) {
+      if (!crdt.parentId || !crdt.parentKey) {
+        continue;
+      }
+
+      if (crdt.type === CrdtType.OBJECT && id === rootId) {
+        root = [id, crdt];
+      } else {
+        const tuple: IdTuple<SerializedChild> = [id, crdt];
+        const children = parentToChildren.get(crdt.parentId);
+        if (children !== undefined) {
+          children.push(tuple);
+        } else {
+          parentToChildren.set(crdt.parentId, [tuple]);
+        }
+      }
+    }
+
+    if (root === null) {
+      throw new Error("Root can't be null");
+    }
+
+    return [root, parentToChildren];
+  }
+
+  /** @internal */
+  static _fromAsyncRegisterItems<O extends LsonObject>(
+    items: IdTuple<SerializedCrdt>[],
+    rootId: string,
+    pool: ManagedPool
+  ): LiveObject<O> {
+    const [root, parentToChildren] =
+      LiveObject.#buildAsyncRegisterRootAndParentToChildren(items, rootId);
+    return LiveObject._deserialize(
+      root,
+      parentToChildren,
+      pool
+    ) as LiveObject<O>;
+  }
+
   constructor(obj: O = {} as O) {
     super();
 

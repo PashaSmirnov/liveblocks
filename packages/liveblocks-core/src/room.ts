@@ -20,6 +20,7 @@ import {
 } from "./convert-plain-data";
 import type { ApplyResult, ManagedPool } from "./crdts/AbstractCrdt";
 import { OpSource } from "./crdts/AbstractCrdt";
+import { LiveAsyncRegister } from "./crdts/LiveAsyncRegister";
 import {
   cloneLson,
   getTreesDiffOperations,
@@ -81,6 +82,7 @@ import { isAckOp, OpCode } from "./protocol/Op";
 import type { IdTuple, SerializedCrdt } from "./protocol/SerializedCrdt";
 import type {
   CommentsEventServerMsg,
+  InitialAsyncRegisterStateServerMsg,
   InitialDocumentStateServerMsg,
   RoomStateServerMsg,
   ServerMsg,
@@ -2346,7 +2348,8 @@ export function createRoom<
       case OpCode.CREATE_OBJECT:
       case OpCode.CREATE_LIST:
       case OpCode.CREATE_MAP:
-      case OpCode.CREATE_REGISTER: {
+      case OpCode.CREATE_REGISTER:
+      case OpCode.CREATE_ASYNC_REGISTER: {
         if (op.parentId === undefined) {
           return { modified: false };
         }
@@ -2651,6 +2654,12 @@ export function createRoom<
             processInitialStorage(message);
             break;
           }
+
+          case ServerMsgCode.INITIAL_ASYNC_REGISTER_STATE: {
+            processInitialAsyncRegister(message);
+            break;
+          }
+  
           // Write event
           case ServerMsgCode.UPDATE_STORAGE: {
             const applyResult = applyOps(message.ops, false);
@@ -2843,6 +2852,30 @@ export function createRoom<
     _resolveStoragePromise?.();
     notifyStorageStatus();
     eventHub.storageDidLoad.notify();
+  }
+
+  function processInitialAsyncRegister(
+    message: InitialAsyncRegisterStateServerMsg
+  ) {
+    const asyncRegister = context.nodes.get(message.rootParentId);
+    if (!asyncRegister || !(asyncRegister instanceof LiveAsyncRegister)) {
+      return;
+    }
+
+    const liveObj = LiveObject._fromAsyncRegisterItems(
+      message.items,
+      message.rootId,
+      pool
+    );
+    asyncRegister._initialize(liveObj);
+
+    eventHub.storageBatch.notify([
+      {
+        type: "LiveAsyncRegister",
+        node: asyncRegister,
+        updates: [{ type: "loaded" }],
+      },
+    ]);
   }
 
   async function streamStorage() {
