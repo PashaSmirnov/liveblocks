@@ -1,7 +1,7 @@
 {
   "name": "@liveblocks/monorepo",
   "private": true,
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "npm@10.8.1+sha256.b8807aebb9656758e2872fa6e7c564b506aa2faa9297439a478d471d2fe32483",
   "workspaces": [
     "shared/*",
     "packages/*",
@@ -9,7 +9,6 @@
     "schema-lang/*",
     "e2e/next-sandbox"
   ],
-  "version": "1.0.0",
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",
