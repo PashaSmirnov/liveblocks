@@ -17,7 +17,7 @@
     "allowUnreachableCode": false, // False makes this stricter: errors instead of warns
     "allowUnusedLabels": false, // False makes this stricter: errors instead of warns
     "forceConsistentCasingInFileNames": true,
-    "importsNotUsedAsValues": "error",
+    "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noImplicitReturns": true,
     "noUncheckedIndexedAccess": true,
